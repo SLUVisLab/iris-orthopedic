@@ -11,8 +11,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ---------------------------------------------------------------------------
 # Configuration — fill in your HF repo IDs
 # ---------------------------------------------------------------------------
-MODEL_REPO = "**YOUR_HF_USERNAME/iris-orthopedic**"  # HF Model repo
-DATASET_REPO = "**YOUR_HF_USERNAME/iris-orthopedic-screws**"  # HF Dataset repo
+MODEL_REPO = "austin-carnahan/orthopedic-screws-model"
+DATASET_REPO = "austin-carnahan/orthopedic-screw-images"
 
 MODEL_FILENAME = "original_classifier_best.pth"
 INDEX_FILENAME = "embeddings.pkl"
