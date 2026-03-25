@@ -1,0 +1,28 @@
+{
+  "name": "IRIS Orthopedic",
+  "short_name": "IRIS",
+  "start_url": "/iris-orthopedic/",
+  "scope": "/iris-orthopedic/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#E6F4FE",
+  "icons": [
+    {
+      "src": "/iris-orthopedic/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/iris-orthopedic/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/iris-orthopedic/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

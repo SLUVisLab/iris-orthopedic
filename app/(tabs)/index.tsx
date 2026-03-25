@@ -240,7 +240,7 @@ export default function SearchScreen() {
         {/* Actions */}
         <View style={styles.actions}>
           <Pressable
-            style={[styles.analyzeBtn, { backgroundColor: tint, opacity: canAnalyze ? 1 : 0.4 }]}
+            style={[styles.analyzeBtn, { opacity: canAnalyze ? 1 : 0.4 }]}
             onPress={analyze}
             disabled={!canAnalyze}
           >
@@ -430,6 +430,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     padding: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -484,6 +485,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     minHeight: 50,
+    backgroundColor: BRAND_NAVY,
   },
   analyzeBtnText: {
     color: '#fff',

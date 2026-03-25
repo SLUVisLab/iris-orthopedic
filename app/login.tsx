@@ -14,7 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { Fonts } from '@/constants/theme';
 import { auth } from '@/firebase';
-import { useThemeColor } from '@/hooks/use-theme-color';
 
 // Complete any pending auth sessions (needed for native redirect flow)
 if (Platform.OS !== 'web') {
@@ -27,7 +26,6 @@ const GOOGLE_WEB_CLIENT_ID = '727915261975-lg6u1f2dnnbmc1je0jga37rnmacklf88.apps
 const BRAND_NAVY = '#1a365d';
 
 export default function LoginScreen() {
-  const tint = useThemeColor({}, 'tint');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,16 +103,16 @@ export default function LoginScreen() {
         <View style={styles.providers}>
           {/* Google */}
           <Pressable
-            style={[styles.providerBtn, { borderColor: tint }]}
+            style={[styles.providerBtn, { borderColor: BRAND_NAVY }]}
             onPress={handleGoogleSignIn}
-            disabled={!request || loading}
+            disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator size="small" color={tint} />
+              <ActivityIndicator size="small" color={BRAND_NAVY} />
             ) : (
               <>
-                <MaterialIcons name="login" size={20} color={tint} />
-                <ThemedText style={[styles.providerText, { color: tint }]}>
+                <MaterialIcons name="login" size={20} color={BRAND_NAVY} />
+                <ThemedText style={[styles.providerText, { color: BRAND_NAVY }]}>
                   Continue with Google
                 </ThemedText>
               </>

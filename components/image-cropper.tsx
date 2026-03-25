@@ -1,14 +1,14 @@
 import { ThemedText } from '@/components/themed-text';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
     useAnimatedStyle,
     useSharedValue
 } from 'react-native-reanimated';
 
-const CROP_SIZE = Math.min(Dimensions.get('window').width - 64, 320);
+const MAX_CROP = 320;
 
 type CropRegion = {
   originX: number;
@@ -24,6 +24,10 @@ type Props = {
 };
 
 export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
+  const { width: windowWidth } = useWindowDimensions();
+  // Responsive crop size: fit within card padding (20px each side) + some gap
+  const cropSize = Math.min(windowWidth - 80, MAX_CROP);
+
   const [imageLayout, setImageLayout] = useState<{
     width: number;
     height: number;
@@ -41,15 +45,13 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
   const computeCrop = useCallback(() => {
     if (!imageLayout) return;
 
-    // The image is displayed to fill the crop box, so we need the display scale
     const displayScale = Math.max(
-      CROP_SIZE / imageLayout.width,
-      CROP_SIZE / imageLayout.height
+      cropSize / imageLayout.width,
+      cropSize / imageLayout.height
     );
     const totalScale = displayScale * scale.value;
 
-    // The visible crop square maps to these pixel coords in the original image
-    const cropPixelSize = CROP_SIZE / totalScale;
+    const cropPixelSize = cropSize / totalScale;
     const centerX = imageLayout.width / 2 - translateX.value / totalScale;
     const centerY = imageLayout.height / 2 - translateY.value / totalScale;
 
@@ -64,9 +66,9 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
       width: Math.round(width),
       height: Math.round(height),
     });
-  }, [imageLayout, scale, translateX, translateY, onCropChange]);
+  }, [imageLayout, cropSize, scale, translateX, translateY, onCropChange]);
 
-  // --- Mouse support for web ---
+  // --- Web: mouse + touch support ---
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const node = cropWindowRef.current as unknown as HTMLElement | null;
@@ -86,7 +88,7 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
     };
 
     const onMouseDown = (e: MouseEvent) => {
-      e.preventDefault(); // prevent text/image selection
+      e.preventDefault();
       isDragging = true;
       lastX = e.clientX;
       lastY = e.clientY;
@@ -113,12 +115,65 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
     };
 
     const onDragStart = (e: DragEvent) => {
-      e.preventDefault(); // prevent native image drag ghost
+      e.preventDefault();
+    };
+
+    // Touch handlers for mobile browsers
+    let activeTouches: Touch[] = [];
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let initialPinchDist = 0;
+
+    const getTouchDist = (t1: Touch, t2: Touch) =>
+      Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      activeTouches = Array.from(e.touches);
+      if (activeTouches.length === 1) {
+        lastTouchX = activeTouches[0].clientX;
+        lastTouchY = activeTouches[0].clientY;
+      } else if (activeTouches.length === 2) {
+        initialPinchDist = getTouchDist(activeTouches[0], activeTouches[1]);
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const touches = Array.from(e.touches);
+      if (touches.length === 1) {
+        const dx = touches[0].clientX - lastTouchX;
+        const dy = touches[0].clientY - lastTouchY;
+        lastTouchX = touches[0].clientX;
+        lastTouchY = touches[0].clientY;
+        translateX.value += dx;
+        translateY.value += dy;
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
+      } else if (touches.length === 2 && initialPinchDist > 0) {
+        const dist = getTouchDist(touches[0], touches[1]);
+        const pinchScale = dist / initialPinchDist;
+        const next = Math.max(1, Math.min(10, savedScale.value * pinchScale));
+        scale.value = next;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0 && activeTouches.length >= 2) {
+        savedScale.value = scale.value;
+      }
+      if (e.touches.length === 0) {
+        computeCrop();
+      }
+      activeTouches = Array.from(e.touches);
     };
 
     node.addEventListener('wheel', onWheel, { passive: false });
     node.addEventListener('mousedown', onMouseDown);
     node.addEventListener('dragstart', onDragStart);
+    node.addEventListener('touchstart', onTouchStart, { passive: false });
+    node.addEventListener('touchmove', onTouchMove, { passive: false });
+    node.addEventListener('touchend', onTouchEnd);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
 
@@ -126,13 +181,16 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
       node.removeEventListener('wheel', onWheel);
       node.removeEventListener('mousedown', onMouseDown);
       node.removeEventListener('dragstart', onDragStart);
+      node.removeEventListener('touchstart', onTouchStart);
+      node.removeEventListener('touchmove', onTouchMove);
+      node.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [computeCrop, scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY]);
+  }, [computeCrop, cropSize, scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY]);
 
   const panGesture = Gesture.Pan()
-    .enabled(Platform.OS !== 'web') // on web, mouse handlers manage panning
+    .enabled(Platform.OS !== 'web')
     .onUpdate((e) => {
       translateX.value = savedTranslateX.value + e.translationX;
       translateY.value = savedTranslateY.value + e.translationY;
@@ -143,8 +201,8 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
       computeCrop();
     });
 
-  const pinchEnabled = Gesture.Pinch()
-    .enabled(Platform.OS !== 'web') // on web, wheel handler manages zoom
+  const pinchGesture = Gesture.Pinch()
+    .enabled(Platform.OS !== 'web')
     .onUpdate((e) => {
       scale.value = Math.max(1, Math.min(10, savedScale.value * e.scale));
     })
@@ -152,7 +210,7 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
       savedScale.value = scale.value;
     });
 
-  const composedGesture = Gesture.Simultaneous(pinchEnabled, panGesture);
+  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -165,9 +223,8 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
   const handleImageLoad = (e: { source: { width: number; height: number } }) => {
     const { width, height } = e.source;
     setImageLayout({ width, height });
-    // Fire initial crop covering the center square
-    const displayScale = Math.max(CROP_SIZE / width, CROP_SIZE / height);
-    const cropPixelSize = CROP_SIZE / displayScale;
+    const displayScale = Math.max(cropSize / width, cropSize / height);
+    const cropPixelSize = cropSize / displayScale;
     const originX = Math.max(0, (width - cropPixelSize) / 2);
     const originY = Math.max(0, (height - cropPixelSize) / 2);
     onCropChange({
@@ -183,26 +240,31 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
       <ThemedText type="defaultSemiBold" style={styles.label}>
         {label}
       </ThemedText>
-      <View ref={cropWindowRef} style={styles.cropWindow}>
+      <View
+        ref={cropWindowRef}
+        style={[styles.cropWindow, { width: cropSize, height: cropSize }]}
+      >
         <GestureDetector gesture={composedGesture}>
-          <Animated.View style={[styles.imageWrapper, animatedStyle]}>
+          <Animated.View
+            style={[
+              { width: cropSize, height: cropSize, justifyContent: 'center', alignItems: 'center' },
+              animatedStyle,
+            ]}
+          >
             <Image
               source={{ uri: imageUri }}
-              style={styles.image}
+              style={{ width: cropSize, height: cropSize }}
               contentFit="contain"
               onLoad={handleImageLoad}
             />
           </Animated.View>
         </GestureDetector>
-        {/* Crop overlay — non-interactive border showing the crop zone */}
         <View style={styles.cropOverlay} pointerEvents="none">
-          <View style={styles.cropBorder} />
+          <View style={[styles.cropBorder, { width: cropSize - 16, height: cropSize - 16 }]} />
         </View>
       </View>
       <ThemedText style={styles.hint}>
-        {Platform.OS === 'web'
-          ? 'Scroll to zoom, click and drag to position'
-          : 'Pinch to zoom, drag to position'}
+        Pinch to zoom, drag to position
       </ThemedText>
     </View>
   );
@@ -220,21 +282,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   cropWindow: {
-    width: CROP_SIZE,
-    height: CROP_SIZE,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#0f172a',
-  },
-  imageWrapper: {
-    width: CROP_SIZE,
-    height: CROP_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: CROP_SIZE,
-    height: CROP_SIZE,
   },
   cropOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -242,8 +292,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cropBorder: {
-    width: CROP_SIZE - 16,
-    height: CROP_SIZE - 16,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 8,
