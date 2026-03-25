@@ -23,9 +23,12 @@ export default function CompareScreen() {
   const isDark = colorScheme === 'dark';
   const { width, height } = useWindowDimensions();
   const isWide = Platform.OS === 'web' && width > 600;
-  // Each image cell should take ~45% of screen height so a pair
-  // nearly fills the viewport with a hint of the next set below.
-  const cellHeight = Math.round(height * 0.42);
+  // Size cells so two images + section label + gaps fit within ~80% of
+  // the viewport, leaving a visible hint of the next section below.
+  const cellHeight = Math.round(height * 0.34);
+  // Leave horizontal gutters so users can scroll the page without
+  // accidentally triggering pan gestures inside the images.
+  const cellWidth = Math.min(width - 64, 400);
 
   const openLightbox = (uri: string, label: string) => {
     router.push({
@@ -78,14 +81,14 @@ export default function CompareScreen() {
         /* Narrow layout: vertical stack */
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <ThemedText style={styles.sectionLabel}>AP Comparison</ThemedText>
-          <ImageCell uri={params.apUri} label="Your AP" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
-          <ImageCell uri={params.refApUrl} label="Reference AP" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
+          <ImageCell uri={params.apUri} label="Your AP" onTap={openLightbox} cellHeight={cellHeight} cellWidth={cellWidth} isDark={isDark} />
+          <ImageCell uri={params.refApUrl} label="Reference AP" onTap={openLightbox} cellHeight={cellHeight} cellWidth={cellWidth} isDark={isDark} />
 
           <ThemedText style={[styles.sectionLabel, { marginTop: 20 }]}>
             Lateral Comparison
           </ThemedText>
-          <ImageCell uri={params.latUri} label="Your Lateral" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
-          <ImageCell uri={params.refLatUrl} label="Reference Lateral" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
+          <ImageCell uri={params.latUri} label="Your Lateral" onTap={openLightbox} cellHeight={cellHeight} cellWidth={cellWidth} isDark={isDark} />
+          <ImageCell uri={params.refLatUrl} label="Reference Lateral" onTap={openLightbox} cellHeight={cellHeight} cellWidth={cellWidth} isDark={isDark} />
         </ScrollView>
       )}
 
@@ -99,18 +102,21 @@ function ImageCell({
   label,
   onTap,
   cellHeight,
+  cellWidth,
   isDark,
 }: {
   uri: string;
   label: string;
   onTap: (uri: string, label: string) => void;
   cellHeight?: number;
+  cellWidth?: number;
   isDark?: boolean;
 }) {
   return (
     <View style={[
       styles.cell,
       cellHeight ? { height: cellHeight } : undefined,
+      cellWidth ? { width: cellWidth, alignSelf: 'center' as const } : undefined,
       isDark && { borderColor: '#334155' },
     ]}>
       <View style={[styles.cellHeader, isDark && { backgroundColor: 'rgba(30,41,59,0.95)' }]}>
