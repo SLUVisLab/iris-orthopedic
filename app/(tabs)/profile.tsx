@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,7 +16,7 @@ export default function ProfileScreen() {
   const tint = useThemeColor({}, 'tint');
 
   const handleSignOut = async () => {
-    await auth.signOut();
+    await signOut(auth);
     router.replace('/login');
   };
 

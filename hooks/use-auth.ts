@@ -1,13 +1,13 @@
 import { auth } from '@/firebase';
-import type firebase from 'firebase/compat/app';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
 export function useAuth() {
-  const [user, setUser] = useState<firebase.User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
     });

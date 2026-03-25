@@ -43,6 +43,8 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen name="compare" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="lightbox" options={{ presentation: 'modal', headerShown: false, animation: 'fade' }} />
           </Stack>
         </View>
       </View>

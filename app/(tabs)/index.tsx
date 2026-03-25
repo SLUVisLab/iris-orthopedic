@@ -1,12 +1,17 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Client, handle_file } from '@gradio/client';
+import { Image as RNImage } from 'expo-image';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +28,19 @@ type CropRegion = {
   height: number;
 };
 
+type SimilarCase = {
+  manufacturer: string;
+  score: number;
+  ap_url: string;
+  lat_url: string;
+};
+
+type PredictionResult = {
+  manufacturer: string;
+  confidence: number;
+  similar: SimilarCase[];
+};
+
 export default function SearchScreen() {
   const [apImageUri, setApImageUri] = useState<string | null>(null);
   const [latImageUri, setLatImageUri] = useState<string | null>(null);
@@ -30,8 +48,27 @@ export default function SearchScreen() {
   const [latCrop, setLatCrop] = useState<CropRegion | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<PredictionResult[] | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(0);
 
   const tint = useThemeColor({}, 'tint');
+  const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
+  const isWide = Platform.OS === 'web' && windowWidth > 600;
+
+  const openCompare = (sim: SimilarCase) => {
+    router.push({
+      pathname: '/compare',
+      params: {
+        apUri: apImageUri!,
+        latUri: latImageUri!,
+        refApUrl: sim.ap_url,
+        refLatUrl: sim.lat_url,
+        manufacturer: sim.manufacturer,
+        score: String(sim.score),
+      },
+    });
+  };
 
   const pickFromLibrary = async (setUri: (uri: string | null) => void) => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -67,23 +104,51 @@ export default function SearchScreen() {
     return manipulated.uri;
   };
 
+  const uriToBlob = async (uri: string): Promise<Blob> => {
+    const response = await fetch(uri);
+    return response.blob();
+  };
+
   const analyze = async () => {
     if (!apImageUri || !latImageUri || !apCrop || !latCrop) return;
 
     setLoading(true);
     setError(null);
 
+    // Polyfill Buffer check for @gradio/client in browser environment
+    if (typeof globalThis.Buffer === 'undefined') {
+      globalThis.Buffer = class {} as never;
+    }
+
     try {
       const apCroppedUri = await getCroppedUri(apImageUri, apCrop);
       const latCroppedUri = await getCroppedUri(latImageUri, latCrop);
 
-      // TODO: Send cropped images to /predict API
-      // For now just log that cropping succeeded
-      console.log('Cropped AP:', apCroppedUri);
-      console.log('Cropped Lateral:', latCroppedUri);
+      const apBlob = await uriToBlob(apCroppedUri);
+      const latBlob = await uriToBlob(latCroppedUri);
+
+      const client = await Client.connect('austin-carnahan/orthopedic-screw-identification');
+      const result = await client.predict('/predict', {
+        ap_editor: {
+          background: handle_file(apBlob),
+          layers: [],
+          composite: handle_file(apBlob),
+        },
+        lat_editor: {
+          background: handle_file(latBlob),
+          layers: [],
+          composite: handle_file(latBlob),
+        },
+      });
+
+      const data = result.data as { results: PredictionResult[] }[];
+      const predictions = data[0].results;
+      setResults(predictions);
+      setSelectedIdx(0);
+      console.log('Prediction result:', JSON.stringify(predictions, null, 2));
     } catch (err) {
-      console.error(err);
-      setError('Failed to process images.');
+      console.error('Analysis error:', err);
+      setError('Failed to analyze images. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,6 +160,8 @@ export default function SearchScreen() {
     setApCrop(null);
     setLatCrop(null);
     setError(null);
+    setResults(null);
+    setSelectedIdx(0);
   };
 
   const canAnalyze = !!apImageUri && !!latImageUri && !!apCrop && !!latCrop && !loading;
@@ -188,6 +255,104 @@ export default function SearchScreen() {
           <ThemedView style={styles.errorBox}>
             <ThemedText style={styles.errorText}>{error}</ThemedText>
           </ThemedView>
+        )}
+
+        {/* Results */}
+        {results && (
+          <View style={styles.resultSection}>
+            <ThemedText type="defaultSemiBold" style={styles.resultHeading}>
+              Predicted Manufacturers
+            </ThemedText>
+
+            {/* Prediction list */}
+            <View style={styles.predictionList}>
+              {results.map((item, idx) => (
+                <Pressable
+                  key={item.manufacturer}
+                  style={[
+                    styles.predictionItem,
+                    selectedIdx === idx && { borderColor: tint, backgroundColor: tint + '10' },
+                  ]}
+                  onPress={() => setSelectedIdx(idx)}
+                >
+                  <View style={styles.predInfo}>
+                    <ThemedText style={styles.predName}>{item.manufacturer}</ThemedText>
+                    <ThemedText style={[styles.predConf, { color: tint }]}>
+                      {(item.confidence * 100).toFixed(1)}%
+                    </ThemedText>
+                  </View>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${item.confidence * 100}%` },
+                      ]}
+                    />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Similar cases */}
+            {results[selectedIdx]?.similar?.length > 0 && (
+              <View style={styles.similarSection}>
+                <ThemedText style={styles.similarHeading}>
+                  Similar Cases ({results[selectedIdx].manufacturer})
+                </ThemedText>
+                {isWide ? (
+                  <View style={styles.similarGrid}>
+                    {results[selectedIdx].similar.map((sim, idx) => (
+                      <Pressable key={idx} style={[styles.similarItem, styles.similarItemWide]} onPress={() => openCompare(sim)}>
+                        <View style={styles.similarImgs}>
+                          <RNImage
+                            source={{ uri: sim.ap_url }}
+                            style={styles.similarImg}
+                            contentFit="cover"
+                          />
+                          <RNImage
+                            source={{ uri: sim.lat_url }}
+                            style={styles.similarImg}
+                            contentFit="cover"
+                          />
+                        </View>
+                        <ThemedText style={styles.similarLabel}>AP / Lateral</ThemedText>
+                        <ThemedText style={styles.similarScore}>
+                          Similarity: {sim.score.toFixed(3)}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.similarList}
+                  >
+                    {results[selectedIdx].similar.map((sim, idx) => (
+                      <Pressable key={idx} style={styles.similarItem} onPress={() => openCompare(sim)}>
+                        <View style={styles.similarImgs}>
+                          <RNImage
+                            source={{ uri: sim.ap_url }}
+                            style={styles.similarImg}
+                            contentFit="cover"
+                          />
+                          <RNImage
+                            source={{ uri: sim.lat_url }}
+                            style={styles.similarImg}
+                            contentFit="cover"
+                          />
+                        </View>
+                        <ThemedText style={styles.similarLabel}>AP / Lateral</ThemedText>
+                        <ThemedText style={styles.similarScore}>
+                          Similarity: {sim.score.toFixed(3)}
+                        </ThemedText>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            )}
+          </View>
         )}
 
         {/* Disclaimer */}
@@ -326,5 +491,104 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     opacity: 0.5,
     textAlign: 'center',
+  },
+  resultSection: {
+    gap: 16,
+  },
+  resultHeading: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  predictionList: {
+    gap: 10,
+  },
+  predictionItem: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#fff',
+  },
+  predInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  predName: {
+    fontWeight: '700',
+    fontSize: 15,
+    flex: 1,
+  },
+  predConf: {
+    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: 'monospace' as never,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: 4,
+  },
+  similarSection: {
+    marginTop: 4,
+  },
+  similarHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.5,
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e2e8f0',
+  },
+  similarGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  similarList: {
+    gap: 12,
+    paddingBottom: 4,
+  },
+  similarItem: {
+    width: 200,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#fff',
+  },
+  similarItemWide: {
+    flex: 1,
+    width: undefined,
+  },
+  similarImgs: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 8,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  similarImg: {
+    width: 85,
+    height: 85,
+    borderRadius: 4,
+  },
+  similarLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  similarScore: {
+    fontSize: 12,
+    opacity: 0.5,
   },
 });
