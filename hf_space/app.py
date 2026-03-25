@@ -54,13 +54,21 @@ print(f"Index loaded: {len(index['embeddings'])} embeddings")
 # ---------------------------------------------------------------------------
 # Prediction function
 # ---------------------------------------------------------------------------
-def predict(ap_image: Image.Image, lat_image: Image.Image) -> dict:
+def predict(ap_editor: dict, lat_editor: dict) -> dict:
     """
-    Accepts AP and Lateral PIL images.
-    Returns JSON with ranked predictions and similar reference cases.
+    Accepts AP and Lateral images from ImageEditor components.
+    The editor dict has keys: 'background', 'layers', 'composite'.
+    'composite' is the final image after all edits (including crop).
     """
-    if ap_image is None or lat_image is None:
+    if ap_editor is None or lat_editor is None:
         return {"error": "Please provide both AP and Lateral images."}
+
+    # ImageEditor returns a dict — 'composite' is the cropped/edited result
+    ap_image = ap_editor.get("composite")
+    lat_image = lat_editor.get("composite")
+
+    if ap_image is None or lat_image is None:
+        return {"error": "Please crop both images before submitting."}
 
     # Run inference
     probs, embedding = wrapper.predict_pil(ap_image, lat_image)
@@ -124,13 +132,23 @@ def predict(ap_image: Image.Image, lat_image: Image.Image) -> dict:
 demo = gr.Interface(
     fn=predict,
     inputs=[
-        gr.Image(type="pil", label="AP View"),
-        gr.Image(type="pil", label="Lateral View"),
+        gr.ImageEditor(
+            type="pil",
+            label="AP View — crop to the screw",
+            crop_size=None,
+            transforms=["crop"],
+        ),
+        gr.ImageEditor(
+            type="pil",
+            label="Lateral View — crop to the screw",
+            crop_size=None,
+            transforms=["crop"],
+        ),
     ],
     outputs=gr.JSON(label="Predictions"),
     title="OrthoScrew ID",
     description=(
-        "Upload AP and Lateral X-ray views of a pedicle screw. "
+        "Upload AP and Lateral X-ray views, then crop each image to the screw. "
         "The model identifies the manufacturer and returns similar reference cases."
     ),
     examples=None,
