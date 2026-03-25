@@ -178,6 +178,10 @@ export default function SearchScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
+          <RNImage
+            source={require('@/assets/images/icon.png')}
+            style={styles.headerIcon}
+          />
           <ThemedText style={styles.brandTitle}>OrthoScrew ID</ThemedText>
         </View>
 
@@ -402,11 +406,19 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e2e8f0',
     marginBottom: 4,
+  },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
   },
   brandTitle: {
     fontSize: 34,
