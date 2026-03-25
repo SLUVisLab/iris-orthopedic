@@ -19,7 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageCropper from '@/components/image-cropper';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Fonts } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
+
+const BRAND_NAVY = '#1a365d';
 
 type CropRegion = {
   originX: number;
@@ -175,7 +178,7 @@ export default function SearchScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <ThemedText type="title">OrthoScrew ID</ThemedText>
+          <ThemedText style={styles.brandTitle}>OrthoScrew ID</ThemedText>
         </View>
 
         {/* AP View */}
@@ -404,6 +407,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e2e8f0',
     marginBottom: 4,
+  },
+  brandTitle: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: BRAND_NAVY,
+    fontFamily: Fonts?.serif,
+    letterSpacing: 0.5,
   },
   card: {
     borderRadius: 12,
