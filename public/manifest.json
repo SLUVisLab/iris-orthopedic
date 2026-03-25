@@ -1,6 +1,6 @@
 {
-  "name": "IRIS Orthopedic",
-  "short_name": "IRIS",
+  "name": "OrthoScrew ID",
+  "short_name": "OrthoScrew ID",
   "start_url": "/iris-orthopedic/",
   "scope": "/iris-orthopedic/",
   "display": "standalone",

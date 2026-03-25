@@ -22,7 +22,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#E6F4FE" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="IRIS" />
+        <meta name="apple-mobile-web-app-title" content="OrthoScrew ID" />
         <link rel="apple-touch-icon" href="/iris-orthopedic/apple-touch-icon.png" />
 
         {/* Disable body scrolling on web to match native feel */}

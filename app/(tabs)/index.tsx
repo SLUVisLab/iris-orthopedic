@@ -20,6 +20,7 @@ import ImageCropper from '@/components/image-cropper';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 const BRAND_NAVY = '#1a365d';
@@ -55,6 +56,8 @@ export default function SearchScreen() {
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   const tint = useThemeColor({}, 'tint');
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
   const isWide = Platform.OS === 'web' && windowWidth > 600;
@@ -177,12 +180,12 @@ export default function SearchScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isDark && { borderBottomColor: '#334155' }]}>
           <RNImage
             source={require('@/assets/images/icon.png')}
             style={styles.headerIcon}
           />
-          <ThemedText style={styles.brandTitle}>OrthoScrew ID</ThemedText>
+          <ThemedText style={[styles.brandTitle, isDark && { color: '#e2e8f0' }]}>OrthoScrew ID</ThemedText>
         </View>
 
         {/* AP View */}
@@ -259,8 +262,8 @@ export default function SearchScreen() {
         </View>
 
         {error && (
-          <ThemedView style={styles.errorBox}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <ThemedView style={[styles.errorBox, isDark && { backgroundColor: '#450a0a' }]}>
+            <ThemedText style={[styles.errorText, isDark && { color: '#fca5a5' }]}>{error}</ThemedText>
           </ThemedView>
         )}
 
@@ -278,6 +281,7 @@ export default function SearchScreen() {
                   key={item.manufacturer}
                   style={[
                     styles.predictionItem,
+                    isDark && { backgroundColor: '#1e293b', borderColor: '#334155' },
                     selectedIdx === idx && { borderColor: tint, backgroundColor: tint + '10' },
                   ]}
                   onPress={() => setSelectedIdx(idx)}
@@ -288,7 +292,7 @@ export default function SearchScreen() {
                       {(item.confidence * 100).toFixed(1)}%
                     </ThemedText>
                   </View>
-                  <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarBg, isDark && { backgroundColor: '#334155' }]}>
                     <View
                       style={[
                         styles.progressBarFill,
@@ -303,13 +307,13 @@ export default function SearchScreen() {
             {/* Similar cases */}
             {results[selectedIdx]?.similar?.length > 0 && (
               <View style={styles.similarSection}>
-                <ThemedText style={styles.similarHeading}>
+                <ThemedText style={[styles.similarHeading, isDark && { borderBottomColor: '#334155' }]}>
                   Similar Cases ({results[selectedIdx].manufacturer})
                 </ThemedText>
                 {isWide ? (
                   <View style={styles.similarGrid}>
                     {results[selectedIdx].similar.map((sim, idx) => (
-                      <Pressable key={idx} style={[styles.similarItem, styles.similarItemWide]} onPress={() => openCompare(sim)}>
+                      <Pressable key={idx} style={[styles.similarItem, styles.similarItemWide, isDark && { backgroundColor: '#1e293b', borderColor: '#334155' }]} onPress={() => openCompare(sim)}>
                         <View style={styles.similarImgs}>
                           <RNImage
                             source={{ uri: sim.ap_url }}
@@ -336,7 +340,7 @@ export default function SearchScreen() {
                     contentContainerStyle={styles.similarList}
                   >
                     {results[selectedIdx].similar.map((sim, idx) => (
-                      <Pressable key={idx} style={styles.similarItem} onPress={() => openCompare(sim)}>
+                      <Pressable key={idx} style={[styles.similarItem, isDark && { backgroundColor: '#1e293b', borderColor: '#334155' }]} onPress={() => openCompare(sim)}>
                         <View style={styles.similarImgs}>
                           <RNImage
                             source={{ uri: sim.ap_url }}
@@ -513,7 +517,7 @@ const styles = StyleSheet.create({
   disclaimer: {
     fontSize: 12,
     lineHeight: 18,
-    opacity: 0.5,
+    opacity: 0.7,
     textAlign: 'center',
   },
   resultSection: {
@@ -568,7 +572,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    opacity: 0.5,
+    opacity: 0.7,
     marginBottom: 12,
     paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -613,6 +617,6 @@ const styles = StyleSheet.create({
   },
   similarScore: {
     fontSize: 12,
-    opacity: 0.5,
+    opacity: 0.7,
   },
 });

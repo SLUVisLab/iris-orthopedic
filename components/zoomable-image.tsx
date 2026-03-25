@@ -176,9 +176,8 @@ export default function ZoomableImage({
     };
   }, [minScale, maxScale, scale, savedScale, translateX, translateY, savedTranslateX, savedTranslateY]);
 
-  // Mobile: pinch + pan + double-tap-to-reset
+  // Native-only: pinch + pan + double-tap-to-reset
   const pinch = Gesture.Pinch()
-    .enabled(Platform.OS !== 'web')
     .onUpdate((e) => {
       scale.value = Math.max(minScale, Math.min(maxScale, savedScale.value * e.scale));
     })
@@ -187,7 +186,6 @@ export default function ZoomableImage({
     });
 
   const pan = Gesture.Pan()
-    .enabled(Platform.OS !== 'web')
     .minPointers(1)
     .onUpdate((e) => {
       translateX.value = savedTranslateX.value + e.translationX;
@@ -199,7 +197,6 @@ export default function ZoomableImage({
     });
 
   const doubleTap = Gesture.Tap()
-    .enabled(Platform.OS !== 'web')
     .numberOfTaps(2)
     .onEnd(resetZoom);
 
@@ -213,20 +210,30 @@ export default function ZoomableImage({
     ],
   }));
 
+  const content = (
+    <Animated.View
+      ref={containerRef}
+      style={[styles.container, style]}
+    >
+      <Animated.View style={[styles.inner, animatedStyle]}>
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="contain"
+        />
+      </Animated.View>
+    </Animated.View>
+  );
+
+  // On web, skip GestureDetector entirely — raw DOM handlers manage
+  // wheel/mouse/touch events without conflict from RNGH's pointer system.
+  if (Platform.OS === 'web') {
+    return content;
+  }
+
   return (
     <GestureDetector gesture={composed}>
-      <Animated.View
-        ref={containerRef}
-        style={[styles.container, style]}
-      >
-        <Animated.View style={[styles.inner, animatedStyle]}>
-          <Image
-            source={{ uri }}
-            style={StyleSheet.absoluteFill}
-            contentFit="contain"
-          />
-        </Animated.View>
-      </Animated.View>
+      {content}
     </GestureDetector>
   );
 }
@@ -235,6 +242,9 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
     flex: 1,
+    // Prevent browser default touch gestures (pinch-zoom, scroll) from
+    // conflicting with our custom touch handlers on mobile web / PWA.
+    ...(Platform.OS === 'web' ? { touchAction: 'none' as never } : {}),
   },
   inner: {
     ...StyleSheet.absoluteFillObject,

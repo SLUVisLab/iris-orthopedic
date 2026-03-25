@@ -285,6 +285,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#0f172a',
+    // Force a compositing layer on mobile WebKit so overflow: hidden
+    // correctly clips transformed (scaled/translated) children.
+    ...(Platform.OS === 'web' ? { isolation: 'isolate' as never } : {}),
   },
   cropOverlay: {
     ...StyleSheet.absoluteFillObject,
