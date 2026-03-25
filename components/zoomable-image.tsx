@@ -132,9 +132,16 @@ export default function ZoomableImage({
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length === 0 && activeTouches.length >= 2) {
-        // Pinch ended — save scale
+      // Save scale when transitioning out of a pinch (2+ fingers → fewer than 2)
+      // Fingers usually lift one at a time, so check for < 2 not === 0
+      if (e.touches.length < 2 && activeTouches.length >= 2) {
         savedScale.value = scale.value;
+      }
+      // When one finger remains after a pinch, reset its position
+      // so the next single-finger move doesn't cause a pan jump
+      if (e.touches.length === 1) {
+        lastTouchX = e.touches[0].clientX;
+        lastTouchY = e.touches[0].clientY;
       }
       if (e.touches.length === 0 && activeTouches.length === 1) {
         // Check for double-tap

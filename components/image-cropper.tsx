@@ -159,8 +159,14 @@ export default function ImageCropper({ imageUri, label, onCropChange }: Props) {
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length === 0 && activeTouches.length >= 2) {
+      // Save scale when transitioning out of a pinch (2+ fingers → fewer than 2)
+      if (e.touches.length < 2 && activeTouches.length >= 2) {
         savedScale.value = scale.value;
+      }
+      // When one finger remains after a pinch, reset its position
+      if (e.touches.length === 1) {
+        lastTouchX = e.touches[0].clientX;
+        lastTouchY = e.touches[0].clientY;
       }
       if (e.touches.length === 0) {
         computeCrop();
