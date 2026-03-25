@@ -1,6 +1,10 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
+import appJson from '../app.json';
+
+const APP_NAME = appJson.expo.name;
+
 /**
  * Root HTML template for Expo Router web export.
  * This file lets us inject the web app manifest link and PWA meta tags
@@ -22,7 +26,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#E6F4FE" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="OrthoScrew ID" />
+        <meta name="apple-mobile-web-app-title" content={APP_NAME} />
         <link rel="apple-touch-icon" href="/iris-orthopedic/apple-touch-icon.png" />
 
         {/* Disable body scrolling on web to match native feel */}

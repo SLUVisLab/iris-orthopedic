@@ -12,8 +12,10 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Fonts } from '@/constants/theme';
+import { APP_NAME, Fonts } from '@/constants/theme';
 import { auth } from '@/firebase';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 // Complete any pending auth sessions (needed for native redirect flow)
 if (Platform.OS !== 'web') {
@@ -28,6 +30,10 @@ const BRAND_NAVY = '#1a365d';
 export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const bg = useThemeColor({}, 'background');
+  const accentColor = isDark ? '#93c5fd' : BRAND_NAVY;
 
   // expo-auth-session for native only
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -82,7 +88,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       {/* Top section — icon */}
       <View style={styles.topSection}>
         <Image
@@ -94,8 +100,8 @@ export default function LoginScreen() {
 
       {/* Middle section — text */}
       <View style={styles.midSection}>
-        <ThemedText style={styles.title}>OrthoScrew ID</ThemedText>
-        <ThemedText style={styles.subtitle}>Sign in to continue</ThemedText>
+        <ThemedText style={[styles.title, { color: accentColor }]}>{APP_NAME}</ThemedText>
+        <ThemedText style={[styles.subtitle, { color: accentColor }]}>Sign in to continue</ThemedText>
       </View>
 
       {/* Bottom section — providers */}
@@ -103,16 +109,16 @@ export default function LoginScreen() {
         <View style={styles.providers}>
           {/* Google */}
           <Pressable
-            style={[styles.providerBtn, { borderColor: BRAND_NAVY }]}
+            style={[styles.providerBtn, { borderColor: accentColor }]}
             onPress={handleGoogleSignIn}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator size="small" color={BRAND_NAVY} />
+              <ActivityIndicator size="small" color={accentColor} />
             ) : (
               <>
-                <MaterialIcons name="login" size={20} color={BRAND_NAVY} />
-                <ThemedText style={[styles.providerText, { color: BRAND_NAVY }]}>
+                <MaterialIcons name="login" size={20} color={accentColor} />
+                <ThemedText style={[styles.providerText, { color: accentColor }]}>
                   Continue with Google
                 </ThemedText>
               </>
@@ -122,7 +128,7 @@ export default function LoginScreen() {
           {/* Add more providers here — Apple, email/password, etc. */}
         </View>
 
-        {error && <ThemedText style={styles.error}>{error}</ThemedText>}
+        {error && <ThemedText style={[styles.error, isDark && { color: '#fca5a5' }]}>{error}</ThemedText>}
       </View>
     </SafeAreaView>
   );
@@ -131,7 +137,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   topSection: {
     flex: 2,

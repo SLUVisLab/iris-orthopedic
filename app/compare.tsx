@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import ZoomableImage from '@/components/zoomable-image';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 export default function CompareScreen() {
@@ -18,8 +19,13 @@ export default function CompareScreen() {
   }>();
   const router = useRouter();
   const tint = useThemeColor({}, 'tint');
-  const { width } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const { width, height } = useWindowDimensions();
   const isWide = Platform.OS === 'web' && width > 600;
+  // Each image cell should take ~45% of screen height so a pair
+  // nearly fills the viewport with a hint of the next set below.
+  const cellHeight = Math.round(height * 0.42);
 
   const openLightbox = (uri: string, label: string) => {
     router.push({
@@ -38,7 +44,7 @@ export default function CompareScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isDark && { borderBottomColor: '#334155' }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={24} color={tint} />
         </Pressable>
@@ -58,28 +64,28 @@ export default function CompareScreen() {
           {/* AP column */}
           <View style={styles.gridCol}>
             <ThemedText style={styles.colLabel}>AP</ThemedText>
-            <ImageCell uri={params.apUri} label="Your AP" onTap={openLightbox} />
-            <ImageCell uri={params.refApUrl} label="Reference AP" onTap={openLightbox} />
+            <ImageCell uri={params.apUri} label="Your AP" onTap={openLightbox} isDark={isDark} />
+            <ImageCell uri={params.refApUrl} label="Reference AP" onTap={openLightbox} isDark={isDark} />
           </View>
           {/* Lateral column */}
           <View style={styles.gridCol}>
             <ThemedText style={styles.colLabel}>Lateral</ThemedText>
-            <ImageCell uri={params.latUri} label="Your Lateral" onTap={openLightbox} />
-            <ImageCell uri={params.refLatUrl} label="Reference Lateral" onTap={openLightbox} />
+            <ImageCell uri={params.latUri} label="Your Lateral" onTap={openLightbox} isDark={isDark} />
+            <ImageCell uri={params.refLatUrl} label="Reference Lateral" onTap={openLightbox} isDark={isDark} />
           </View>
         </View>
       ) : (
         /* Narrow layout: vertical stack */
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <ThemedText style={styles.sectionLabel}>AP Comparison</ThemedText>
-          <ImageCell uri={params.apUri} label="Your AP" onTap={openLightbox} />
-          <ImageCell uri={params.refApUrl} label="Reference AP" onTap={openLightbox} />
+          <ImageCell uri={params.apUri} label="Your AP" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
+          <ImageCell uri={params.refApUrl} label="Reference AP" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
 
           <ThemedText style={[styles.sectionLabel, { marginTop: 20 }]}>
             Lateral Comparison
           </ThemedText>
-          <ImageCell uri={params.latUri} label="Your Lateral" onTap={openLightbox} />
-          <ImageCell uri={params.refLatUrl} label="Reference Lateral" onTap={openLightbox} />
+          <ImageCell uri={params.latUri} label="Your Lateral" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
+          <ImageCell uri={params.refLatUrl} label="Reference Lateral" onTap={openLightbox} cellHeight={cellHeight} isDark={isDark} />
         </ScrollView>
       )}
 
@@ -92,17 +98,25 @@ function ImageCell({
   uri,
   label,
   onTap,
+  cellHeight,
+  isDark,
 }: {
   uri: string;
   label: string;
   onTap: (uri: string, label: string) => void;
+  cellHeight?: number;
+  isDark?: boolean;
 }) {
   return (
-    <View style={styles.cell}>
-      <View style={styles.cellHeader}>
+    <View style={[
+      styles.cell,
+      cellHeight ? { height: cellHeight } : undefined,
+      isDark && { borderColor: '#334155' },
+    ]}>
+      <View style={[styles.cellHeader, isDark && { backgroundColor: 'rgba(30,41,59,0.95)' }]}>
         <ThemedText style={styles.cellLabel}>{label}</ThemedText>
         <Pressable onPress={() => onTap(uri, label)} hitSlop={8}>
-          <MaterialIcons name="fullscreen" size={22} color="#666" />
+          <MaterialIcons name="fullscreen" size={22} color={isDark ? '#94a3b8' : '#666'} />
         </Pressable>
       </View>
       <View style={styles.cellImage}>
@@ -169,13 +183,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cell: {
-    flex: 1,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     overflow: 'hidden',
     backgroundColor: '#000',
     minHeight: 180,
+    marginBottom: 10,
   },
   cellHeader: {
     flexDirection: 'row',

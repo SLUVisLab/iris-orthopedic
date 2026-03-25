@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ImageCropper from '@/components/image-cropper';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import { APP_NAME, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
@@ -185,7 +185,7 @@ export default function SearchScreen() {
             source={require('@/assets/images/icon.png')}
             style={styles.headerIcon}
           />
-          <ThemedText style={[styles.brandTitle, isDark && { color: '#e2e8f0' }]}>OrthoScrew ID</ThemedText>
+          <ThemedText style={[styles.brandTitle, isDark && { color: '#e2e8f0' }]}>{APP_NAME}</ThemedText>
         </View>
 
         {/* AP View */}
