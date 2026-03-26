@@ -1,112 +1,141 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { ExternalLink } from '@/components/external-link';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { APP_NAME, Fonts } from '@/constants/theme';
 
-export default function TabTwoScreen() {
+export default function AboutScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      headerBackgroundColor={{ light: '#E6F4FE', dark: '#1a365d' }}
       headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
         <Image
           source={require('@/assets/images/icon.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
+          style={styles.headerImage}
+          contentFit="contain"
         />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
+      }>
+      {/* Title */}
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title" style={{ fontFamily: Fonts?.serif }}>
+          {APP_NAME}
         </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
+      </ThemedView>
+      <ThemedText style={styles.tagline}>
+        AI-powered orthopedic screw identification from x-ray images.
+      </ThemedText>
+
+      {/* ── How to Use ── */}
+      <View style={styles.section}>
+        <ThemedText type="subtitle">How to Use</ThemedText>
+
+        <ThemedText style={styles.stepHeader}>1. Upload X-Ray Images</ThemedText>
+        <ThemedText style={styles.body}>
+          Tap <ThemedText type="defaultSemiBold">Select a Photo</ThemedText> or the camera icon to
+          provide two x-ray views of the implanted screw — one anteroposterior (AP) and one lateral.
         </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
+
+        <ThemedText style={styles.stepHeader}>2. Crop to the Screw</ThemedText>
+        <ThemedText style={styles.body}>
+          Use the crop tool to zoom in on the screw of interest. Pinch to zoom and drag to position
+          the screw within the frame. The tighter and more centered the crop, the better the
+          prediction.
+        </ThemedText>
+
+        <ThemedText style={styles.stepHeader}>3. Identify Manufacturer</ThemedText>
+        <ThemedText style={styles.body}>
+          Tap <ThemedText type="defaultSemiBold">Identify Manufacturer</ThemedText> to run the
+          analysis. The model will return a ranked list of predicted manufacturers with confidence
+          scores.
+        </ThemedText>
+
+        <ThemedText style={styles.stepHeader}>4. Review Results</ThemedText>
+        <ThemedText style={styles.body}>
+          Select a prediction to view similar cases from the reference database. Tap a similar case
+          to open a side-by-side comparison of your x-rays with the reference images.
+        </ThemedText>
+      </View>
+
+      {/* ── About the Project ── */}
+      <View style={styles.section}>
+        <ThemedText type="subtitle">About the Project</ThemedText>
+        <ThemedText style={styles.body}>
+          {APP_NAME} was developed through a collaboration between medical and computer science
+          researchers at Saint Louis University. The project addresses a real challenge in orthopedic
+          revision surgeries: quickly and accurately identifying the manufacturer of previously
+          implanted hardware to ensure compatibility with new implants.
+        </ThemedText>
+        <ThemedText style={styles.body}>
+          Manual identification is time-consuming and error-prone, often requiring surgeons to
+          visually compare screws against catalogs or consult with vendor representatives. Our goal
+          is to streamline this process using machine learning, enabling faster preoperative planning
+          and more confident surgical decision-making.
+        </ThemedText>
+        <ThemedText style={styles.body}>
+          The underlying model is trained on a curated dataset of x-ray images from thoracic spine
+          patients with implants from known manufacturers. It analyzes screw features visible in
+          standard x-ray views and matches them against learned patterns to predict the most likely
+          manufacturer.
+        </ThemedText>
+      </View>
+
+      {/* ── Disclaimer ── */}
+      <View style={styles.section}>
+        <ThemedText style={styles.disclaimer}>
+          <ThemedText style={[styles.disclaimer, { fontWeight: '700' }]}>Disclaimer: </ThemedText>
+          This tool is provided for assistive use only and does not constitute medical advice or
+          diagnosis. AI predictions may contain errors. The operating physician assumes full
+          responsibility for the final identification of any implant.
+        </ThemedText>
+      </View>
+
+      {/* ── Contact ── */}
+      <View style={styles.section}>
+        <ThemedText type="subtitle">Contact</ThemedText>
+        <ThemedText style={styles.body}>
+          For questions, feedback, or collaboration inquiries, please reach out to the research team
+          at Saint Louis University.
+        </ThemedText>
+      </View>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
+    width: 160,
+    height: 160,
+    alignSelf: 'center',
     position: 'absolute',
+    bottom: 40,
   },
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  tagline: {
+    fontSize: 15,
+    opacity: 0.6,
+    marginBottom: 8,
+  },
+  section: {
+    gap: 8,
+    marginTop: 16,
+  },
+  stepHeader: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  disclaimer: {
+    fontSize: 13,
+    lineHeight: 19,
+    opacity: 0.6,
   },
 });
