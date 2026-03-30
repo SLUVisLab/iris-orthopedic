@@ -14,7 +14,7 @@ reference cases.
 OrthoScrew ID is a Progressive Web App built with Expo, designed to provide a near-native
 mobile experience in the browser. It auto-deploys and is hosted on GitHub Pages.
 
-**Live app:** [https://austin-carnahan.github.io/iris-orthopedic/](https://austin-carnahan.github.io/iris-orthopedic/)
+**Live app:** [https://sluvislab.github.io/iris-orthopedic/](https://sluvislab.github.io/iris-orthopedic/)
 
 ### Local Development
 
