@@ -1,50 +1,75 @@
-# Welcome to your Expo app 👋
+# OrthoScrew ID
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+AI-powered orthopedic screw identification from x-ray images.
 
-## Get started
+OrthoScrew ID was developed through a collaboration between medical and computer science
+researchers at Saint Louis University. The app addresses a real challenge in orthopedic
+revision surgeries: quickly and accurately identifying the manufacturer of previously
+implanted hardware. Upload AP and Lateral x-ray views, crop to the screw of interest,
+and the model returns ranked manufacturer predictions with confidence scores and similar
+reference cases.
 
-1. Install dependencies
+## Running the App
 
-   ```bash
-   npm install
-   ```
+OrthoScrew ID is a Progressive Web App built with Expo, designed to provide a near-native
+mobile experience in the browser. It auto-deploys and is hosted on GitHub Pages.
 
-2. Start the app
+**Live app:** [https://austin-carnahan.github.io/iris-orthopedic/](https://austin-carnahan.github.io/iris-orthopedic/)
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### Local Development
 
 ```bash
-npm run reset-project
+# Install dependencies
+npm install
+
+# Start for web
+npm run web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The app will open at `http://localhost:8081`.
 
-## Learn more
+## Authentication Setup
 
-To learn more about developing your project with Expo, look at the following resources:
+The app uses Google sign-in via Firebase Authentication. For login to work, you must
+configure whitelisting in **both** places:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. **Firebase Console** → Authentication → Settings → Authorized domains — add your
+   domain (e.g., `localhost`, `austin-carnahan.github.io`)
+2. **Google Cloud Platform** → APIs & Services → Credentials → OAuth 2.0 Client →
+   Authorized JavaScript origins and redirect URIs — add the same domains
 
-## Join the community
+Both must be configured or authentication will fail silently.
 
-Join our community of developers creating universal apps.
+Firebase config is in [`firebase.js`](firebase.js).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Machine Learning Backend
+
+This app communicates directly with Hugging Face as its backend — there is no separate
+server. The ML code lives in the [`ml/`](ml/) directory.
+
+| Resource | URL |
+|---|---|
+| **Inference Space** | [austin-carnahan/orthopedic-screw-identification](https://huggingface.co/spaces/austin-carnahan/orthopedic-screw-identification) |
+| **Model Repo** | [austin-carnahan/orthopedic-screws-model](https://huggingface.co/austin-carnahan/orthopedic-screws-model) |
+| **Dataset** | [austin-carnahan/orthopedic-screw-images](https://huggingface.co/datasets/austin-carnahan/orthopedic-screw-images) |
+
+The app sends cropped x-ray images to the HF Space via the Gradio client library and
+receives manufacturer predictions with similar reference cases. See
+[`ml/space/README.md`](ml/space/README.md) for API details.
+
+## Native Builds (iOS / Android)
+
+Basic EAS Build configuration is provided in [`eas.json`](eas.json). To create native
+app builds:
+
+```bash
+eas build --platform ios     # or android
+```
+
+See the [EAS Build introduction](https://docs.expo.dev/build/introduction/) for setup
+and prerequisites.
+
+> **Note:** Native builds require additional setup before they will succeed:
+> - Add `ios.bundleIdentifier` and `android.package` to [`app.json`](app.json)
+> - Camera and photo library permissions may need to be configured in `app.json` plugins
+> - An Apple Developer account (iOS) or Google Play Console (Android) is needed for distribution

@@ -48,6 +48,12 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "baseUrl": "/iris-orthopedic"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "da9c5d9f-0ce2-49e4-a958-6f49c8dd79a1"
+      }
     }
   }
 }

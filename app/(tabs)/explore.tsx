@@ -39,9 +39,10 @@ export default function AboutScreen() {
 
         <ThemedText style={styles.stepHeader}>2. Crop to the Screw</ThemedText>
         <ThemedText style={styles.body}>
-          Use the crop tool to zoom in on the screw of interest. Pinch to zoom and drag to position
-          the screw within the frame. The tighter and more centered the crop, the better the
-          prediction.
+          Use the crop tool to zoom in on the screw of interest. Choose the clearest, least
+          obstructed screw — x-rays often have artifacts or overlapping anatomy that can obscure
+          some instances. Pinch to zoom and drag to position the screw within the frame. The
+          tighter and more centered the crop, the better the prediction.
         </ThemedText>
 
         <ThemedText style={styles.stepHeader}>3. Identify Manufacturer</ThemedText>
@@ -65,7 +66,7 @@ export default function AboutScreen() {
           {APP_NAME} was developed through a collaboration between medical and computer science
           researchers at Saint Louis University. The project addresses a real challenge in orthopedic
           revision surgeries: quickly and accurately identifying the manufacturer of previously
-          implanted hardware to ensure compatibility with new implants.
+          implanted hardware.
         </ThemedText>
         <ThemedText style={styles.body}>
           Manual identification is time-consuming and error-prone, often requiring surgeons to

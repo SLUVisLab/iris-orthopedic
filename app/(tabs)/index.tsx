@@ -54,6 +54,7 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<PredictionResult[] | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [resultsStale, setResultsStale] = useState(false);
 
   const tint = useThemeColor({}, 'tint');
   const colorScheme = useColorScheme();
@@ -151,6 +152,7 @@ export default function SearchScreen() {
       const predictions = data[0].results;
       setResults(predictions);
       setSelectedIdx(0);
+      setResultsStale(false);
       console.log('Prediction result:', JSON.stringify(predictions, null, 2));
     } catch (err) {
       console.error('Analysis error:', err);
@@ -168,6 +170,7 @@ export default function SearchScreen() {
     setError(null);
     setResults(null);
     setSelectedIdx(0);
+    setResultsStale(false);
   };
 
   const canAnalyze = !!apImageUri && !!latImageUri && !!apCrop && !!latCrop && !loading;
@@ -202,11 +205,11 @@ export default function SearchScreen() {
               <ImageCropper
                 imageUri={apImageUri}
                 label="Crop AP Screw"
-                onCropChange={setApCrop}
+                onCropChange={(crop) => { setApCrop(crop); if (results) setResultsStale(true); }}
               />
               <Pressable
                 style={styles.removeBtn}
-                onPress={() => { setApImageUri(null); setApCrop(null); }}
+                onPress={() => { setApImageUri(null); setApCrop(null); if (results) setResultsStale(true); }}
               >
                 <ThemedText style={styles.removeBtnText}>Remove</ThemedText>
               </Pressable>
@@ -228,11 +231,11 @@ export default function SearchScreen() {
               <ImageCropper
                 imageUri={latImageUri}
                 label="Crop Lateral Screw"
-                onCropChange={setLatCrop}
+                onCropChange={(crop) => { setLatCrop(crop); if (results) setResultsStale(true); }}
               />
               <Pressable
                 style={styles.removeBtn}
-                onPress={() => { setLatImageUri(null); setLatCrop(null); }}
+                onPress={() => { setLatImageUri(null); setLatCrop(null); if (results) setResultsStale(true); }}
               >
                 <ThemedText style={styles.removeBtnText}>Remove</ThemedText>
               </Pressable>
@@ -270,6 +273,12 @@ export default function SearchScreen() {
         {/* Results */}
         {results && (
           <View style={styles.resultSection}>
+            {resultsStale && (
+              <View style={[styles.staleBanner, isDark && { backgroundColor: '#1e293b', borderColor: '#334155' }]}>
+                <MaterialIcons name="info-outline" size={16} color={isDark ? '#94a3b8' : '#64748b'} />
+                <ThemedText style={styles.staleBannerText}>Inputs changed — re-analyze to update results</ThemedText>
+              </View>
+            )}
             <ThemedText type="defaultSemiBold" style={styles.resultHeading}>
               Predicted Manufacturers
             </ThemedText>
@@ -522,6 +531,22 @@ const styles = StyleSheet.create({
   },
   resultSection: {
     gap: 16,
+  },
+  staleBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e2e8f0',
+  },
+  staleBannerText: {
+    fontSize: 13,
+    opacity: 0.8,
+    flex: 1,
   },
   resultHeading: {
     fontSize: 16,

@@ -3,11 +3,10 @@
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
 
-import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-/** Display name from app.json — single source of truth for the app title. */
-export const APP_NAME = Constants.expoConfig?.name ?? 'OrthoScrew ID';
+/** Single source of truth for the app display name. */
+export const APP_NAME = 'OrthoScrew ID';
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';

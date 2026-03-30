@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# IDEs
+.vscode/
+
 # Expo
 .expo/
 dist/
@@ -41,3 +44,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+# ML artifacts (hosted on HF, not in git)
+*.pth
+*.pkl
