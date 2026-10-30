@@ -34,7 +34,7 @@ The app uses Google sign-in via Firebase Authentication. For login to work, you 
 configure whitelisting in **both** places:
 
 1. **Firebase Console** → Authentication → Settings → Authorized domains — add your
-   domain (e.g., `localhost`, `austin-carnahan.github.io`)
+   domain (e.g., `localhost`, `sluvislab.github.io`)
 2. **Google Cloud Platform** → APIs & Services → Credentials → OAuth 2.0 Client →
    Authorized JavaScript origins and redirect URIs — add the same domains
 
@@ -56,6 +56,9 @@ server. The ML code lives in the [`ml/`](ml/) directory.
 The app sends cropped x-ray images to the HF Space via the Gradio client library and
 receives manufacturer predictions with similar reference cases. See
 [`ml/space/README.md`](ml/space/README.md) for API details.
+
+The training code in `ml/training/` is based on the earlier screw classification benchmark:
+[SLUVisLab/ortho_screw_classification](https://github.com/SLUVisLab/ortho_screw_classification).
 
 ## Native Builds (iOS / Android)
 
