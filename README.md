@@ -57,8 +57,9 @@ The app sends cropped x-ray images to the HF Space via the Gradio client library
 receives manufacturer predictions with similar reference cases. See
 [`ml/space/README.md`](ml/space/README.md) for API details.
 
-The training code in `ml/training/` is based on the earlier screw classification benchmark:
-[SLUVisLab/ortho_screw_classification](https://github.com/SLUVisLab/ortho_screw_classification).
+The deployed model is a dual-view DINOv2 classifier. It is trained and evaluated in
+[SLUVisLab/ortho_screw_dinov2](https://github.com/SLUVisLab/ortho_screw_dinov2); the earlier
+multi-model benchmark is [SLUVisLab/ortho_screw_classification](https://github.com/SLUVisLab/ortho_screw_classification).
 
 ## Native Builds (iOS / Android)
 

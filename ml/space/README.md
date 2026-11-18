@@ -17,14 +17,14 @@ tags:
   - classification
   - orthopedic
 preload_from_hub:
-  - austin-carnahan/orthopedic-screws-model original_classifier_best.pth,embeddings.pkl
+  - austin-carnahan/orthopedic-screws-model dinov2_dual_view.pth,dinov2_embeddings.pkl
 ---
 
 # Orthopedic Screw Identification
 
 Upload AP and Lateral X-ray views of a pedicle screw to identify the manufacturer.
 
-**Model**: Dual-view ResNet18 classifier trained on labeled X-ray data.
+**Model**: Dual-view DINOv2 (ViT-S/14) classifier from [SLUVisLab/ortho_screw_dinov2](https://github.com/SLUVisLab/ortho_screw_dinov2), trained on labeled X-ray screw crops. Evaluation results are in that repository.
 
 **Returns**: Ranked manufacturer predictions with confidence scores and similar reference cases from the training set.
 
@@ -36,13 +36,18 @@ cd ml/space
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy shared model code into this directory
-cp ../model/original_model.py .
-cp ../model/model_wrapper.py .
+# Copy shared model code into this directory (deploy-space.sh does the same)
+cp ../model/model.py ../model/model_wrapper.py .
+cp -R ../model/vendor .
 
-# Launch the Gradio app
+# Launch the Gradio app (downloads weights + index from the HF model repo)
 python app.py
+
+# ...or test with local files before uploading them
+MODEL_PATH=/path/to/dinov2_dual_view.pth INDEX_PATH=/path/to/dinov2_embeddings.pkl python app.py
 ```
+
+The copied files are gitignored here; `ml/model/` is the source of truth.
 
 The app will be available at `http://localhost:7860`.
 
@@ -122,19 +127,19 @@ cases from the training set (one per unique patient, ranked by cosine similarity
 |---|---|---|
 | `manufacturer` | string | Manufacturer class name |
 | `confidence` | float | Softmax probability (0–1) |
-| `similar[].score` | float | Cosine similarity against embedding index (0–1) |
+| `similar[].score` | float | Cosine similarity against the embedding index (up to 1) |
 | `similar[].ap_url` | string | Direct URL to the reference AP image in the HF dataset repo |
 | `similar[].lat_url` | string | Direct URL to the reference Lateral image in the HF dataset repo |
 
 ## How It Works
 
-1. User uploads AP and Lateral X-ray images and crops each to the screw of interest.
-2. Images are preprocessed (resize to 224×224, grayscale→3ch, ImageNet normalization).
-3. Each view passes through its own ResNet18 backbone, producing a 512-dim feature vector.
-4. The two vectors are concatenated into a 1024-dim embedding.
+1. User uploads AP and Lateral X-ray images and crops each to the screw of interest. The model was trained on screw-centered crops about twice the screw's size.
+2. Images are preprocessed (resize to 224×224, grayscale→3ch, ImageNet normalization), the same as the model's evaluation transform.
+3. Both views pass through one shared, frozen DINOv2 ViT-S/14 backbone, each producing a 384-dim [CLS] feature.
+4. The two features are concatenated into a 768-dim embedding.
 5. A fusion classifier head outputs logits over 4 manufacturer classes.
 6. Softmax converts logits to confidence scores.
-7. Cosine similarity against a pre-built embedding index finds the most similar reference cases for each manufacturer.
+7. Cosine similarity against a pre-built index of 768-dim embeddings of screw crops from the dataset finds the most similar reference cases for each manufacturer (see [ml/indexer/](../indexer/)).
 
 ## Configuration
 
@@ -146,4 +151,6 @@ Key constants in `app.py`:
 | `DATASET_REPO` | HF dataset repo for reference image URLs |
 | `MODEL_FILENAME` | Weights file name (`.pth`) |
 | `INDEX_FILENAME` | Embedding index file name (`.pkl`) |
-| `CLASSES` | Manufacturer class names (must match training order) |
+| `CLASSES` | Manufacturer class names, read from the model definition (`model.CLASSES`) |
+
+Environment variables `MODEL_PATH` and `INDEX_PATH` override the downloads with local files.

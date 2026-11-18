@@ -1,0 +1,4 @@
+# Model files copied in by deploy-space.sh / for local runs (source: ml/model/)
+model.py
+model_wrapper.py
+vendor/

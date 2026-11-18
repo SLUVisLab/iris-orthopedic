@@ -1,53 +1,56 @@
-import json
+import os
 import pickle
 
 import gradio as gr
-import numpy as np
 from huggingface_hub import hf_hub_download
 from model_wrapper import ClassifierWrapper
-from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
 
 # ---------------------------------------------------------------------------
-# Configuration — fill in your HF repo IDs
+# Configuration
 # ---------------------------------------------------------------------------
 MODEL_REPO = "austin-carnahan/orthopedic-screws-model"
 DATASET_REPO = "austin-carnahan/orthopedic-screw-images"
 
-MODEL_FILENAME = "original_classifier_best.pth"
-INDEX_FILENAME = "embeddings.pkl"
+# Dual-view DINOv2 checkpoint and its similarity index (see ml/model/README.md)
+MODEL_FILENAME = "dinov2_dual_view.pth"
+INDEX_FILENAME = "dinov2_embeddings.pkl"
 
 # Base URL for serving reference images from the dataset repo
 DATASET_IMAGE_BASE = (
     f"https://huggingface.co/datasets/{DATASET_REPO}/resolve/main/data"
 )
 
-# Classes — must match training order (sorted alphabetically)
-CLASSES = sorted(
-    [
-        "Depuy expedium (Synthes)",
-        "medtronic solera",
-        "nuvasive reline",
-        "seaspine mariner",
-    ]
-)
-
 # ---------------------------------------------------------------------------
-# Load model + embedding index from HF Hub (cached after first download)
+# Load model + embedding index. Set MODEL_PATH / INDEX_PATH to use local files
+# (e.g. for testing before upload); otherwise they come from the HF model repo
+# (cached after the first download).
 # ---------------------------------------------------------------------------
-print("Downloading model weights...")
-model_path = hf_hub_download(repo_id=MODEL_REPO, filename=MODEL_FILENAME)
+model_path = os.environ.get("MODEL_PATH")
+if not model_path:
+    print("Downloading model weights...")
+    model_path = hf_hub_download(repo_id=MODEL_REPO, filename=MODEL_FILENAME)
 
-print("Downloading embedding index...")
-index_path = hf_hub_download(repo_id=MODEL_REPO, filename=INDEX_FILENAME)
+index_path = os.environ.get("INDEX_PATH")
+if not index_path:
+    print("Downloading embedding index...")
+    index_path = hf_hub_download(repo_id=MODEL_REPO, filename=INDEX_FILENAME)
 
 print("Loading model...")
 wrapper = ClassifierWrapper(model_path, device="cpu")
+
+# Class order comes from the checkpoint's model definition
+CLASSES = list(wrapper.classes)
 
 print("Loading embedding index...")
 with open(index_path, "rb") as f:
     index = pickle.load(f)
 
+if index["embeddings"].shape[1] != 768:
+    raise ValueError(
+        f"Index has {index['embeddings'].shape[1]}-dim embeddings; the DINOv2 model produces 768. "
+        "Rebuild it with ml/indexer/indexer.py."
+    )
 print(f"Index loaded: {len(index['embeddings'])} embeddings")
 
 
