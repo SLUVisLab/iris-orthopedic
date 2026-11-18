@@ -1,7 +1,8 @@
-torch
-torchvision
-gradio
-huggingface_hub
+torch==2.9.1
+torchvision==0.24.1
+# gradio is installed by the Space SDK (sdk_version in README.md); gradio 5.23 needs a
+# huggingface_hub release that still depends on requests, i.e. < 1.0
+huggingface_hub==0.36.0
 scikit-learn
 pillow
 numpy

@@ -48,3 +48,7 @@ app-example
 # ML artifacts (hosted on HF, not in git)
 *.pth
 *.pkl
+
+# Python
+__pycache__/
+*.pyc

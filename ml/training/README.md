@@ -1,106 +1,12 @@
-# Training & Benchmarking
+# Training & evaluation
 
-Code for training and benchmarking orthopedic screw classification models. Three approaches are implemented, all using dual-view (AP + Lateral) X-ray inputs.
+Model training and evaluation live in **[SLUVisLab/ortho_screw_dinov2](https://github.com/SLUVisLab/ortho_screw_dinov2)**, the canonical repository for the deployed dual-view DINOv2 classifier. It contains the training script, the evaluation protocol and reports (per-class accuracy, precision, F1, confusion matrix), the released weights, and an archived copy of the previous ResNet18 model under `legacy/resnet18/`.
 
-## Approaches
+The earlier multi-model benchmark (ResNet18, Mask R-CNN, DINOv2) that used to be copied here is in [SLUVisLab/ortho_screw_classification](https://github.com/SLUVisLab/ortho_screw_classification) and in this repository's Git history.
 
-1. **Original Classifier (ResNet18)** — `original_classifier/`
-   - Two `torchvision.models.resnet18` backbones (pretrained on ImageNet)
-   - Feature concatenation fusion → classification head
-   - Uses Mixup augmentation and Label Smoothing (hyperparameters tuned via Optuna)
-   - **This is the model currently deployed in the app**
+## After training a new checkpoint
 
-2. **Mask R-CNN Classifier** — `maskrcnn_classifier/`
-   - Uses `maskrcnn_resnet50_fpn` with segmentation masks
-   - Joint detection + classification training
-
-3. **DINOv2 Classifier** — `dinov2_classifier/`
-   - **DINOv2 ViT-S/14** (frozen backbone) as feature extractor
-   - Trains only a fusion MLP head on the [CLS] tokens
-
-## Dataset
-
-The training data is hosted on Hugging Face:
-
-**Dataset repo:** [`austin-carnahan/orthopedic-screw-images`](https://huggingface.co/datasets/austin-carnahan/orthopedic-screw-images)
-
-Download it using the Hugging Face CLI:
-
-```bash
-huggingface-cli download austin-carnahan/orthopedic-screw-images --repo-type dataset --local-dir ./data
-```
-
-The dataset expects a `metadata_summary.csv` file with columns:
-- `manufacturer` — screw manufacturer name
-- `patient_number` — unique patient identifier
-- `view_position` — `'AP'` or `'LATERAL'`
-- `relative_file_path` — path to the image file relative to the dataset root
-
-## Setup
-
-```bash
-cd ml/training
-
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install torch torchvision scikit-learn pandas matplotlib numpy opencv-python pillow tqdm
-
-# For Optuna hyperparameter optimization
-pip install optuna
-```
-
-## Running the Benchmark
-
-Run all three models sequentially and generate a comparison plot:
-
-```bash
-python run_benchmark.py --data_dir /path/to/dataset
-```
-
-### Output
-- `original_classifier/metrics.json`
-- `maskrcnn_classifier/metrics.json`
-- `dinov2_classifier/metrics.json`
-- `benchmark_comparison.png` — combined plot of Training Loss and Test Accuracy
-
-## Running Individual Models
-
-```bash
-python original_classifier/train.py --data_dir /path/to/dataset
-python maskrcnn_classifier/train.py --data_dir /path/to/dataset
-python dinov2_classifier/train.py --data_dir /path/to/dataset
-```
-
-### Output Artifacts
-
-Training scripts save model weights to the **current working directory**:
-
-| File | Description |
-|---|---|
-| `original_classifier_best.pth` | Best checkpoint (highest test accuracy) |
-| `original_classifier.pth` | Final epoch checkpoint |
-
-These files are gitignored and are **not** committed to the repo. After training,
-upload the best checkpoint and a rebuilt embedding index to Hugging Face — see
-[After Training](#after-training) below.
-
-## Hyperparameter Optimization
-
-The Optuna optimization script tunes the ResNet18 classifier:
-
-```bash
-python optimization/train_optuna.py --data_dir /path/to/dataset --trials 20
-```
-
-Results are saved to `best_params.json`.
-
-## After Training
-
-Once you have a trained model (`.pth` file):
-
-1. **Rebuild the embedding index** — see [`ml/indexer/`](../indexer/)
-2. **Upload weights to HF** — see [`ml/scripts/deploy-model.sh`](../scripts/deploy-model.sh)
-3. **Deploy the updated Space** — see [`ml/scripts/deploy-space.sh`](../scripts/deploy-space.sh)
+1. Evaluate it in ortho_screw_dinov2 (`evaluate.py`, `plot_evaluation.py`).
+2. Rebuild the similarity index with it: `bash ml/scripts/rebuild-index.sh <data_dir> <checkpoint.pth>`.
+3. Upload the checkpoint and index: `bash ml/scripts/deploy-model.sh <checkpoint.pth> <index.pkl>`.
+4. If `model.py` or the vendored DINOv2 code changed, copy them into `ml/model/` and redeploy the Space: `bash ml/scripts/deploy-space.sh`.

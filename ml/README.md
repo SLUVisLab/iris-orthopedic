@@ -1,27 +1,30 @@
 # Machine Learning Pipeline
 
-This directory contains all machine learning code for OrthoScrew ID: model definitions, training scripts, the embedding indexer, the Hugging Face Space, and deployment scripts.
+This directory contains the deployment side of OrthoScrew ID's machine learning: the shared model code, the embedding indexer, the Hugging Face Space, and deployment scripts.
+
+**Training and evaluation live in [SLUVisLab/ortho_screw_dinov2](https://github.com/SLUVisLab/ortho_screw_dinov2)**, the canonical repository for the deployed model (training script, evaluation reports, released weights, and an archived copy of the previous ResNet18 model).
 
 ## Directory Layout
 
 ```
 ml/
-├── model/          Shared model code (single source of truth)
+├── model/          Model code used by the Space and indexer (copied from ortho_screw_dinov2) + HF model card
 ├── space/          Hugging Face Space (Gradio inference API)
-├── training/       Training & benchmarking scripts
-├── indexer/        Embedding index builder
+├── indexer/        Similar-case embedding index builder
+├── training/       Pointer to ortho_screw_dinov2
 └── scripts/        Deploy & utility scripts
 ```
 
 ## Architecture
 
-The deployed model is a **Dual-View ResNet18** classifier:
+The deployed model is a **dual-view DINOv2** classifier:
 
-- Two ResNet18 backbones (one for AP view, one for Lateral view)
-- Each produces a 512-dim feature vector
-- Concatenated into a 1024-dim embedding
-- Fusion classifier head: `Linear(1024,512) → ReLU → Dropout → Linear(512,4)`
+- One shared, frozen DINOv2 ViT-S/14 backbone encodes the AP view and the lateral view separately (384-dim [CLS] feature each)
+- The two features are concatenated into a 768-dim embedding, also used for similar-case search
+- Fusion classifier head: `Linear(768,512) → ReLU → Dropout → Linear(512,4)`
 - 4 manufacturer classes: Depuy Expedium (Synthes), Medtronic Solera, Nuvasive Reline, Seaspine Mariner
+
+On its 26-patient evaluation split it reaches 59.6% accuracy, 46.9% balanced accuracy, and 46.3% macro-F1; see ortho_screw_dinov2's README for per-class results and limitations. Details: [model/README.md](model/README.md).
 
 ## Hugging Face Resources
 
@@ -31,59 +34,53 @@ The deployed model is a **Dual-View ResNet18** classifier:
 | **Model Repo** | [austin-carnahan/orthopedic-screws-model](https://huggingface.co/austin-carnahan/orthopedic-screws-model) |
 | **Dataset** | [austin-carnahan/orthopedic-screw-images](https://huggingface.co/datasets/austin-carnahan/orthopedic-screw-images) |
 
-The model weights (`.pth`) and embedding index (`embeddings.pkl`) are stored in the HF Model repo—not in this git repository.
+The model weights (`dinov2_dual_view.pth`), the pretrained backbone (`dinov2_vits14_pretrain.pth`), and the embedding index (`dinov2_embeddings.pkl`) are stored in the HF Model repo, not in this git repository. The model repo's README is [model/MODEL_CARD.md](model/MODEL_CARD.md), uploaded by `deploy-model.sh`.
 
 ## Prerequisites
 
-The deploy scripts use `huggingface-cli` which must be installed and authenticated:
+The deploy scripts use `huggingface_hub`: `deploy-model.sh` calls its `hf` CLI (the older `huggingface-cli` command no longer exists in current releases), and `deploy-space.sh` uses its Python API to commit to the existing Space directly, because the Hub refuses the CLI's "create repo" step for Gradio Spaces on free hardware (see the comment in that script):
 
 ```bash
 pip install huggingface_hub
-huggingface-cli login
+hf auth login
 ```
 
-You'll be prompted for a [User Access Token](https://huggingface.co/settings/tokens) with `write` scope.
-The token is cached at `~/.cache/huggingface/token` and reused for all subsequent uploads.
+You'll be prompted for a [User Access Token](https://huggingface.co/settings/tokens) with `write` scope. Check it with `hf auth whoami`.
 
 ## End-to-End Pipeline
 
-All training and indexing scripts write output files to the **current working directory**.
-These artifacts (`.pth`, `.pkl`) are gitignored and should never be committed — they
-are uploaded to Hugging Face via the deploy scripts.
-
 ```bash
-# 1. Train — outputs original_classifier_best.pth to CWD
-python ml/training/original_classifier/train.py --data_dir /path/to/data
-# → ./original_classifier_best.pth  (best checkpoint)
-# → ./original_classifier.pth       (final epoch)
+# 0. Data and weights
+hf download austin-carnahan/orthopedic-screw-images --repo-type dataset --local-dir data/hf
+#    Checkpoint: ortho_screw_dinov2's weights/dinov2_dual_view.pth (released) or a new
+#    training run's best_dual_view.pth
 
-# 2. Index — outputs embeddings.pkl to CWD
-bash ml/scripts/rebuild-index.sh /path/to/data ./original_classifier_best.pth
-# → ./embeddings.pkl
+# 1. Index — builds the similar-case index from the dataset with that checkpoint
+bash ml/scripts/rebuild-index.sh data/hf/data /path/to/dinov2_dual_view.pth
+# → ./dinov2_embeddings.pkl
 
-# 3. Deploy model artifacts to HF (pass the paths from steps 1 & 2)
-bash ml/scripts/deploy-model.sh ./original_classifier_best.pth ./embeddings.pkl
+# 2. Upload model artifacts + model card to the HF model repo
+bash ml/scripts/deploy-model.sh /path/to/dinov2_dual_view.pth ./dinov2_embeddings.pkl \
+  /path/to/dinov2_vits14_pretrain.pth
 
-# 4. Deploy the Gradio Space (assembles space/ + model/ into a flat bundle)
+# 3. Deploy the Gradio Space (assembles space/ + model/ into a flat bundle)
 bash ml/scripts/deploy-space.sh
 ```
 
-> **Note:** The deploy scripts accept arbitrary file paths — run them from wherever
-> your `.pth` and `.pkl` files are, or pass absolute paths.
+Upload the model artifacts (step 2) before deploying the Space (step 3): the Space downloads them at startup. `.pth` and `.pkl` files are gitignored and should never be committed.
 
-## Switching Models
+## Changing the Model
 
-To swap in a different model (e.g., DINOv2):
+1. Train and evaluate the new model in ortho_screw_dinov2
+2. If `model.py` or `vendor/` changed there, copy them into `ml/model/` (and update `model_wrapper.py` if preprocessing changed)
+3. Rebuild the embedding index with the new weights
+4. Deploy the model artifacts, then the Space
 
-1. Train the new model and save weights
-2. Update `model/original_model.py` if the architecture changed
-3. Update `model/model_wrapper.py` if preprocessing changed
-4. Rebuild the embedding index with the new weights
-5. Deploy both the model artifacts and the space
+The Space's response format (`results[].manufacturer`, `confidence`, `similar[]`) is what the app reads; keep it stable so the app needs no changes.
 
 ## Subdirectory READMEs
 
-- [model/](model/) — Model architecture and inference wrapper
-- [space/](space/) — HF Space: running locally, deploying, configuration
-- [training/](training/) — Training scripts, benchmarking, hyperparameter optimization
-- [indexer/](indexer/) — Building the embedding similarity index
+- [model/](model/) — Model code, preprocessing, and provenance
+- [space/](space/) — HF Space: running locally, deploying, API reference
+- [indexer/](indexer/) — Building the similar-case index
+- [training/](training/) — Where training and evaluation live
