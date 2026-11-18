@@ -38,7 +38,7 @@ The model weights (`dinov2_dual_view.pth`), the pretrained backbone (`dinov2_vit
 
 ## Prerequisites
 
-The deploy scripts use the `hf` CLI from `huggingface_hub` (the older `huggingface-cli` command no longer exists in current releases):
+The deploy scripts use `huggingface_hub`: `deploy-model.sh` calls its `hf` CLI (the older `huggingface-cli` command no longer exists in current releases), and `deploy-space.sh` uses its Python API to commit to the existing Space directly, because the Hub refuses the CLI's "create repo" step for Gradio Spaces on free hardware (see the comment in that script):
 
 ```bash
 pip install huggingface_hub
