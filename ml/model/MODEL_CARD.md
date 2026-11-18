@@ -1,5 +1,4 @@
 ---
-license: mit
 datasets:
 - austin-carnahan/orthopedic-screw-images
 language:
